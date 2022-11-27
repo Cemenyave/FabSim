@@ -1,3 +1,3 @@
 echo off
 
-call "build/Debug/fabric_simulator.exe"
+call "build/source/Debug/fabric_simulator.exe"
