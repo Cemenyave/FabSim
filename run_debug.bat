@@ -1,3 +1,5 @@
 echo off
 
-call "bin/fabric_simulator.exe"
+PUSHD bin
+call fabric_simulator.exe
+POPD
