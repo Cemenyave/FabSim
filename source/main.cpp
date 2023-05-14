@@ -55,6 +55,12 @@ int main(int argc, const char** argv)
   glfwSetWindowCloseCallback(window, windowCloseCallback);
   glfwSetKeyCallback(window, keyCallback);
 
+  // Set up vertex buffer object
+  unsigned int VBO;
+  glGenBuffers(1, &VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
   while(true)
   {
     if (g_shouldClose)
