@@ -1,12 +1,17 @@
+#include "glm/glm/ext/matrix_float4x4.hpp"
+#include "glm/glm/ext/vector_float4.hpp"
+#include "glm/glm/geometric.hpp"
 #include "iostream"
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include <gl/gl.h>
-#include <stdint.h>
 
-#define __STDC_WANT_LIB_EXT1__ 1;
-#include <stdio.h>
-#include <assert.h>
+#include "shader.h"
+#include "mesh.h"
+#include "camera.h"
+
+
+#include <chrono>
 
 static constexpr int window_height = 600;
 static constexpr int window_width = 800;
@@ -14,97 +19,125 @@ static constexpr int window_width = 800;
 bool g_shouldClose = false;
 
 
-float vertices[] = {
-  -0.5f, -0.5f, 0.0f,
-   0.5f, -0.5f, 0.0f,
-   0.0f,  0.5f, 0.0f,
-};
+static void render(const Mesh& mesh, glm::mat4x4 worldTransform = {1.f}, Shader& shader, Camera& camera)
+{
+  //In order to render a mesh we need to
+  // 1. Set shader program
+  // 2. Set unifomr values (camera transfrom matrix, etc.)
+  // 3. Switch vertex array to meshes VAO
+  // 4. And, finally, call glDrawArrays()
 
-void CompileShaders(uint64_t& shader, const char* shaderPath, GLenum shaderType);
+  shader.use();
+  shader.SetUniformMat4x4("View", camera.getToCameraMatrix());
+  shader.SetUniformMat4x4("Porjection", glm::mat4x4(1.f));
+
+  mesh.draw();
+}
+
 
 void windowCloseCallback(GLFWwindow* window)
 {
   g_shouldClose = true;
 }
 
+void windowCursorPosCallback(GLFWwindow* window, double xPos, double yPos)
+{
+}
+
+static bool g_camcontroll_move_up = false;
+static bool g_camcontroll_move_down = false;
+static bool g_camcontroll_move_left = false;
+static bool g_camcontroll_move_right = false;
+
+
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+  if (key == GLFW_KEY_W)
+  {
+    g_camcontroll_move_up = action == GLFW_PRESS || action == GLFW_REPEAT;
+  }
 
+  if (key == GLFW_KEY_S)
+  {
+    g_camcontroll_move_down = action == GLFW_PRESS || action == GLFW_REPEAT;
+  }
+
+  if (key == GLFW_KEY_A)
+  {
+    g_camcontroll_move_left = action == GLFW_PRESS || action == GLFW_REPEAT;
+  }
+
+  if (key == GLFW_KEY_D)
+  {
+    g_camcontroll_move_right = action == GLFW_PRESS || action == GLFW_REPEAT;
+  }
+
+  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+  {
+    g_shouldClose = true;
+  }
 }
 
 int main(int argc, const char** argv)
 {
-  if (glfwInit() == GLFW_FALSE)
+  // init glfw
   {
-    const char * error = nullptr;
-    int errorNumber = GLFW_NO_ERROR;
-    errorNumber = glfwGetError(&error);
-    std::cout << "Failed to initialize GLFW ("<< errorNumber << "): "
-      << error
-      << std::endl;
-    return 1;
+    if (glfwInit() == GLFW_FALSE)
+    {
+      const char * error = nullptr;
+      int errorNumber = GLFW_NO_ERROR;
+      errorNumber = glfwGetError(&error);
+      std::cout << "Failed to initialize GLFW ("<< errorNumber << "): "
+        << error
+        << std::endl;
+      return 1;
+    }
   }
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   GLFWwindow* window = nullptr;
-  window = glfwCreateWindow(window_width, window_height, "Fabric Simulator", nullptr, nullptr);
-  glfwMakeContextCurrent(window);
 
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+  // Create window
   {
-    std::cout << "Failded to initialize GLAD" << std::endl;
-    return 1;
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    window = glfwCreateWindow(window_width, window_height, "Fabric Simulator", nullptr, nullptr);
+    glfwMakeContextCurrent(window);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+      std::cout << "Failded to initialize GLAD" << std::endl;
+      return 1;
+    }
+
+    glViewport(0, 0, window_width, window_height);
+
+    // subscribe to event from window
+    glfwSetWindowCloseCallback(window, windowCloseCallback);
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetCursorPosCallback(window, windowCursorPosCallback);
   }
 
-  glViewport(0, 0, window_width, window_height);
+  Shader shader{};
+  shader.init(
+      "../source/shaders/shader.vert",
+      "../source/shaders/shader.frag"
+  );
 
-  glfwSetWindowCloseCallback(window, windowCloseCallback);
-  glfwSetKeyCallback(window, keyCallback);
 
-  uint64_t vertexShader;
-  uint64_t fragmentShader;
-  CompileShaders(vertexShader,   "../source/shaders/shader.vert", GL_VERTEX_SHADER);
-  CompileShaders(fragmentShader, "../source/shaders/shader.frag", GL_FRAGMENT_SHADER);
+  Mesh triangle;
+  triangle.setVertices({
+     //position          normal         R    G    B    A
+    {-0.5f, -0.5f, 0.0f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f},
+    { 0.5f, -0.5f, 0.0f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f},
+    { 0.0f,  0.5f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f},
+  });
 
-  uint64_t shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-  glLinkProgram(shaderProgram);
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
+  triangle.init();
 
-  // Check shader program status
-  {
-    GLint success;
-    char log[512];
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-      std::cout << "FAILURE!: shader program linking failed. Error log:" << std::endl;
-      glGetProgramInfoLog(shaderProgram, 512, nullptr, log);
-      std::cout << log << std::endl;
-    }
-    else
-    {
-      std::cout << "SUCCESS shader linkage" << std::endl;
-    }
-  }
+  Camera camera;
 
-  // Set up vertex buffer object
-  GLuint VBO;
-  glGenBuffers(1, &VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  GLuint VAO;
-  glGenVertexArrays(1, &VAO);
-  glBindVertexArray(VAO);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
-  glEnableVertexAttribArray(0);
-
-  glUseProgram(shaderProgram);
+  std::chrono::time_point<std::chrono::high_resolution_clock> currentTime = std::chrono::high_resolution_clock::now();
 
   while(true)
   {
@@ -115,56 +148,47 @@ int main(int argc, const char** argv)
 
     glfwPollEvents();
 
+    std::chrono::time_point<std::chrono::high_resolution_clock> newTime = std::chrono::high_resolution_clock::now();
+
+    //delta time in seconds
+    float dt = std::chrono::duration<float>(newTime - currentTime).count();
+    currentTime = newTime;
+
+    // update
+    {
+      glm::vec3 inputDirection(0.0);
+      if (g_camcontroll_move_up)
+      {
+        inputDirection.y += 1.0;
+      }
+
+      if (g_camcontroll_move_down)
+      {
+        inputDirection.y += -1.0;
+      }
+
+      if (g_camcontroll_move_left)
+      {
+        inputDirection.x += -1.0;
+      }
+
+      if (g_camcontroll_move_right)
+      {
+        inputDirection.x += 1.0;
+      }
+
+      glm::normalize(inputDirection);
+      camera.addPosition(inputDirection * (dt * 0.3f));
+    }
+
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    render(triangle, shader, camera);
 
     glfwSwapBuffers(window);
   }
 
-  glDeleteVertexArrays(1, &VAO);
-  glDeleteBuffers(1, &VBO);
   glfwTerminate();
   return 0;
-}
-
-void CompileShaders(uint64_t& shader, const char* shaderPath, GLenum shaderType)
-{
-  FILE* shaderFile;
-  errno_t error = 0;
-  error = fopen_s(&shaderFile, shaderPath, "rb");
-  if (error != 0)
-  {
-    std::cout << "Failed to open shader file \"" << shaderPath << "\" , error code " << error;
-    return;
-  }
-
-  fseek(shaderFile, 0, SEEK_END);
-  int64_t fileSize = ftell(shaderFile);
-  char *shaderBuffer = new char[fileSize + 1];
-  rewind(shaderFile);
-  fread(shaderBuffer, sizeof(char), fileSize, shaderFile);
-  shaderBuffer[fileSize] = '\0';
-
-  shader = glCreateShader(shaderType);
-  glShaderSource(shader, 1, &shaderBuffer, nullptr);
-  glCompileShader(shader);
-
-  GLint success;
-  char log[512];
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-  if (!success)
-  {
-    std::cout << "FAILURE!: " << shaderPath << " shader compilation failed. Error log:" << std::endl;
-    glGetShaderInfoLog(shader, 512, nullptr, log);
-    std::cout << log << std::endl;
-  }
-  else
-  {
-    std::cout << "SUCCESS " << shaderPath << " shader compilde" << std::endl;
-  }
-
-  fclose(shaderFile);
-  delete[] shaderBuffer;
 }
