@@ -3,14 +3,16 @@
 #include "glad/glad.h"
 
 
-void Mesh::setVertices(const std::vector<Vertex>& vertices)
+void Mesh::setVertices(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
 {
   m_vertices = vertices;
+  m_indices = indices;
 }
 
-void Mesh::setVertices(std::vector<Vertex>&& vertices)
+void Mesh::setVertices(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices)
 {
   m_vertices = std::move(vertices);
+  m_indices = std::move(indices);
 }
 
 void Mesh::init()
@@ -34,16 +36,21 @@ void Mesh::init()
   // Color
   glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(decltype(m_vertices)::value_type), (void*)(6 * sizeof(float)));
   glEnableVertexAttribArray(2);
+
+  glGenBuffers(1, &m_IBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(decltype(m_indices)::value_type), m_indices.data(), GL_STATIC_DRAW);
 }
 
 void Mesh::deinit()
 {
+  glDeleteBuffers(1, &m_IBO);
   glDeleteVertexArrays(1, &m_VAO);
   glDeleteBuffers(1, &m_VBO);
 }
 
 void Mesh::draw() const
 {
-  glBindVertexArray(m_VAO);
-  glDrawArrays(GL_TRIANGLES, 0, m_vertices.size());
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
+  glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, (void*)0);
 }

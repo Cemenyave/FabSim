@@ -1,6 +1,7 @@
 #pragma once
 
 #include "glad/glad.h"
+#include <cstdint>
 #include <vector>
 
 class Shader;
@@ -55,14 +56,20 @@ class Mesh
 {
 public:
   Mesh() = default;
-  void setVertices(const std::vector<Vertex>& vertices);
-  void setVertices(std::vector<Vertex>&& vertices);
+  void setVertices(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+  void setVertices(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices);
   void init();
   void deinit();
   void draw() const;
 
 private:
   GLuint m_VBO;
+  GLuint m_IBO;
   GLuint m_VAO;
+
+  //stores unique vertex data
   std::vector<Vertex> m_vertices;
+
+  //stores indices to correctly draw a mesh using data from vertices
+  std::vector<uint32_t> m_indices;
 };
