@@ -211,6 +211,7 @@ int main(int argc, const char** argv)
     }
 
     glViewport(0, 0, window_width, window_height);
+    glEnable(GL_DEPTH_TEST);
   }
 
   Shader shader{};
@@ -256,7 +257,7 @@ int main(int argc, const char** argv)
     updateCamera(dt, camera);
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4x4 world{1.f};
     world = glm::translate(world, {0.f, 0.f, -1.f});
