@@ -11,6 +11,7 @@
 #include "shader.h"
 #include "mesh.h"
 #include "camera.h"
+#include "shapes/cube.h"
 
 #include "debug_print.h"
 
@@ -21,7 +22,6 @@ static constexpr int window_height = 600;
 static constexpr int window_width = 800;
 
 bool g_shouldClose = false;
-
 
 // OpenGL uses right-hand system in 3D space
 //    y^
@@ -220,19 +220,7 @@ int main(int argc, const char** argv)
       "../source/shaders/shader.frag"
   );
 
-
-  Mesh triangle;
-  triangle.setVertices(
-    {
-       //position          normal         R    G    B    A
-      {-0.5f, -0.5f, 0.0f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f},
-      { 0.5f, -0.5f, 0.0f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f},
-      { 0.0f,  0.5f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f},
-    },
-    {0, 1, 2}
-  );
-
-  triangle.init();
+  Mesh cube = makeCube();
 
   print_mat(glm::mat4x4{1.f});
   Camera camera;
@@ -261,7 +249,7 @@ int main(int argc, const char** argv)
 
     glm::mat4x4 world{1.f};
     world = glm::translate(world, {0.f, 0.f, -1.f});
-    render(triangle, world, shader, camera);
+    render(cube, world, shader, camera);
 
     glfwSwapBuffers(window);
   }

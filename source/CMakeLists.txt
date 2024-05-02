@@ -11,8 +11,16 @@ set(SOURCE_FILES
   main.cpp
   shader.cpp
   mesh.cpp
-  camera.cpp)
+  camera.cpp
+  shapes/cube.cpp
+  shapes/triangle.cpp
+)
+
 add_executable(fabric_simulator ${SOURCE_FILES})
+
+target_include_directories(fabric_simulator
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 target_link_libraries(fabric_simulator
   ${OPENGL_LIBRARY}
