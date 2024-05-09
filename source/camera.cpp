@@ -28,10 +28,10 @@ void Camera::updateTransform()
   const float cosYaw = glm::cos(m_yaw);
 
   m_transform = glm::mat4x4{
-    {cosYaw,  sinPitch * sinYaw, cosPitch * sinYaw, 0.f},
-    {0.f,     cosPitch,          -sinPitch,         0.f},
-    {-sinYaw, sinPitch * cosYaw, cosPitch * cosYaw, 0.f},
-    { m_position, 1.0}
+    {cosYaw, 0.f, sinYaw, 0.f},
+    {sinYaw * sinPitch, cosPitch, -sinPitch*cosYaw,         0.f},
+    {-sinYaw * cosPitch, sinPitch, cosPitch * cosYaw, 0.f},
+    { m_position, 1.f}
   };
 }
 
