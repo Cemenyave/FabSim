@@ -11,6 +11,8 @@
 #include "shader.h"
 #include "mesh.h"
 #include "camera.h"
+#include "object.h"
+
 #include "shapes/cube.h"
 
 #include "debug_print.h"
@@ -220,9 +222,16 @@ int main(int argc, const char** argv)
       "../source/shaders/shader.frag"
   );
 
-  Mesh cube = makeCube();
+  std::vector<Object> scene; // scene is an array of all our objects
+  {
+    Object& obj = scene.emplace_back(Object{makeCube()});
 
-  print_mat(glm::mat4x4{1.f});
+    glm::mat4x4 world{1.f};
+    world = glm::scale(world, {1.f, 1.5f, 1.f});
+    world = glm::translate(world, {0.f, 0.f, -1.f});
+    obj.setTransform(world);
+  }
+
   Camera camera;
 
   std::chrono::time_point<std::chrono::high_resolution_clock> currentTime = std::chrono::high_resolution_clock::now();
@@ -247,9 +256,10 @@ int main(int argc, const char** argv)
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4x4 world{1.f};
-    world = glm::translate(world, {0.f, 0.f, -1.f});
-    render(cube, world, shader, camera);
+    for (const auto& object : scene)
+    {
+      render(object.getMesh(), object.getTransform(), shader, camera);
+    }
 
     glfwSwapBuffers(window);
   }

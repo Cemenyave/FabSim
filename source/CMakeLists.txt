@@ -12,11 +12,13 @@ set(SOURCE_FILES
   shader.cpp
   mesh.cpp
   camera.cpp
+  object.cpp
   shapes/cube.cpp
   shapes/triangle.cpp
 )
 
 add_executable(fabric_simulator ${SOURCE_FILES})
+set_property(TARGET fabric_simulator PROPERTY CXX_STANDARD 20)
 
 target_include_directories(fabric_simulator
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
